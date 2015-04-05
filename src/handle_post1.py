@@ -98,6 +98,8 @@ def runprun_pifm():
 
 class YearPage(Resource):
     # TODO: Add class comment here
+    isLeaf = True
+
     def __init__(self, year):
         Resource.__init__(self)
         self.year = year
@@ -111,6 +113,8 @@ class YearPage(Resource):
 
 class AboutPage(Resource):
     # TODO: Add class comment here
+    isLeaf = True
+
     def __init__(self):
         Resource.__init__(self)
 
@@ -123,6 +127,8 @@ class AboutPage(Resource):
 
 class ConfigPage(Resource):
     # TODO: Add class comment here
+    isLeaf = True
+
     def __init__(self):
         Resource.__init__(self)
 
@@ -173,6 +179,9 @@ class ConfigPage(Resource):
 
 class StatusPage(Resource):
     # TODO: Add class comment here
+
+    isLeaf = True
+
     def __init__(self):
         Resource.__init__(self)
 
@@ -192,15 +201,16 @@ class StatusPage(Resource):
                 v = v[0]
             responseBody += ("<h3>%s : </h3>%s" % (k, v))
 
-            txpower = True
+        txpower = True
 
-            print "process.poll()"
-            try:
-                if fm_process.poll() is not None:
-                    print "process pid[%d] have terminated with exitcode [%d]" % (fm_process.pid, fm_process.poll())
-                    txpower = False
-            except TypeError:
-                print "process pid[%d] have not yet terminated" % (fm_process.pid)
+        print "process.poll()"
+        try:
+            # TODO: Check these if statements, something tells me they are incorrectly written
+            if fm_process.poll() is not None:
+                print "process pid[%d] have terminated with exitcode [%d]" % (fm_process.pid, fm_process.poll())
+                txpower = False
+        except TypeError:
+            print "process pid[%d] have not yet terminated" % (fm_process.pid)
 
         return "<title>Status Page</title><html><body><h1>%s</h1>" \
                "<h2>Web Server Parameters</h2>" \
