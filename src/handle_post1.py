@@ -14,6 +14,13 @@ server_state = ""
 server_starttime = datetime.today()
 server_number_of_views = 0
 
+# TODO: Load securely from config file
+server_users_and_passwords = {'user': 'user', 'admin': 'admin'}
+server_debugmode = "logging off"
+server_modes = ['Fixed Frequency', 'Sweep Frequency', 'Hop Frequency']
+server_vars = {'txmode': server_modes[0], 'fixedstart': 1000000, 'fixedstop': 1200000, 'hopdelay': 200, 'sweepstart': 1000000, 'sweepstop': 1200000}
+
+
 class YearPage(Resource):
     # TODO: Add class comment here
     def __init__(self, year):
@@ -24,7 +31,7 @@ class YearPage(Resource):
         global server_number_of_views
         server_number_of_views += 1
 
-        return "<html><body><pre>%s</pre></body></html>" % (calendar(self.year),)
+        return "<title>Calender for %s</title><html><body><pre>%s</pre></body></html>" % (self.year,calendar(self.year))
 
 
 class AboutPage(Resource):
@@ -39,21 +46,89 @@ class AboutPage(Resource):
         return "<html><body><pre>%s</pre></body></html>" % ("About this page",)
 
 
-class StatusPage(Resource):
+class ConfigPage(Resource):
     # TODO: Add class comment here
     def __init__(self):
         Resource.__init__(self)
 
     def render_GET(self, request):
         global server_number_of_views
-        global server_starttime
         server_number_of_views += 1
 
-        return "<html><body><h1>%s</h1>" \
-               "<h2>Server Started                : %s</h2>" \
-               "<h2>Running Time [HH:MM:ss.mmmmm] : %s</h2>" \
-               "<h2>Number of Views               : %d</h2>" \
-               "</body></html>" % ("Status Page", server_starttime.strftime("%Y-%M-%d %H:%M:%S"), datetime.now() - server_starttime, server_number_of_views)
+        return """
+        <title>Config Page</title>
+        <h1>Config Page</h1>
+        <form method="post"
+
+         <fieldset>
+          <legend> Debug Mode</legend>
+          <p><label> <input type=radio name=logging_mode required value="logging append" > Logging  on : append log </label></p>
+          <p><label> <input type=radio name=logging_mode required value="logging rewrite"> Logging  on : rewrite log </label></p>
+          <p><label> <input type=radio name=logging_mode required value="logging off">     Logging     : off </label></p>
+         </fieldset>
+
+         <p><button>Submit</button></p>
+        </form>
+        """
+
+    def render_POST(self, request):
+        print "FormPage::render_POST"
+
+        print "Methods and Attributes of request"
+        for i in request.__dict__:
+            print "[%s]:[%s]" % (i, getattr(request, i))
+
+        print "Request.args:"
+        if request.args is not None:
+            for k, v in request.args.items():
+                print "[%s]:[%s]" % (k, v)
+
+            global server_debugmode
+            server_debugmode = request.args['logging_mode'][0]
+
+
+        return """
+        <html>
+        <body>You submitted: %s</body>
+        </html>
+        """ % ("\r\n".join(request.content))
+
+
+
+class StatusPage(Resource):
+    # TODO: Add class comment here
+    def __init__(self):
+        Resource.__init__(self)
+
+    def render_GET(self, request):
+        # global only needed when global var value needs to change
+        global server_number_of_views
+        #server_starttime
+        #server_debugmode
+
+        server_number_of_views += 1
+
+        return "<title>Status Page</title><html><body><h1>%s</h1>" \
+               "<h2>Web Server Parameters</h2>" \
+               "<h3>Server Started                : </h3>%s" \
+               "<h3>Running Time                  : </h3>%s" \
+               "<h3>Number of Views               : </h3>%d" \
+               "<h3>Debug Mode                    : </h3>%s" \
+               "<h2>Transmitter Parameters</h2>" \
+               "<h3>Transmit Mode                 : </h3>%s" \
+               "<h3>Fixed Frequency Start         : </h3>%s" \
+               "<h3>Fixed Frequency Stop          : </h3>%s" \
+               "</body></html>" % ("Status Page", server_starttime.strftime("%Y-%M-%d %H:%M:%S"),
+                                   datetime.now() - server_starttime, server_number_of_views,
+                                   server_debugmode, server_txmode, server_fixedstart, server_fixedstop)
+server_txmode = server_modes[0]
+
+server_fixedstart = 1000000
+server_fixedstop = 1200000
+server_hopdelay = 200
+
+server_sweepstart = 1000000
+server_sweepstop = 1200000
 
 
 class FormPage(Resource):
@@ -66,15 +141,6 @@ class FormPage(Resource):
 
     def __del__(self):
         print "FormPage:__del__"
-
-    def getChild(self, name, request):
-        print "FormPage:getChild"
-        if name == '':
-            return self
-        if name.isdigit():
-            return YearPage(int(name))
-        else:
-            return NoResource()
 
     def render_GET(self, request):
         print "FormPage::render_GET"
@@ -93,31 +159,26 @@ class FormPage(Resource):
         #"""
 
         return """
+        <title>Transmit Page</title>
+        <h1>Transmit Page</h1>
         <form method="post"
 
          <fieldset>
-          <legend> Mode </legend>
+          <h2>Transmit Mode</h2>
           <p><label> <input type=radio name=mode required value="fixed freq"> Fixed Frequency </label></p>
           <p><label> <input type=radio name=mode required value="sweep freq"> Sweep Frequency </label></p>
           <p><label> <input type=radio name=mode required value="freq hop">   Hop Frequency </label></p>
          </fieldset>
 
 
-         <h1>Fixed Frequency</h1>
+         <h2>Fixed Frequency</h2>
          <p><label>Fstart(Hz) <input name="fixedstart" minlength=6 value=1000000 required></label></p>
          <p><label>Fstop(Hz)  <input name="fixedstop"  value=1200000 required></label></p>
          <p><label>Delay(ms)  <input name="hopdelay" value=200     required></label></p>
 
-         <h1>Sweep Frequency</h1>
+         <h2>Sweep Frequency</h2>
          <p><label>Fstart <input name="sweepstart" value=1000000  required></label></p>
          <p><label>Fstop <input name="sweepstop"   value=1200000 required></label></p>
-
-         <fieldset>
-          <legend> CGI Debug Mode</legend>
-          <p><label> <input type=radio name=logging_mode required value="logging append" > Logging  on : append log </label></p>
-          <p><label> <input type=radio name=logging_mode required value="logging rewrite"> Logging  on : rewrite log </label></p>
-          <p><label> <input type=radio name=logging_mode required value="logging off">     Logging     : off </label></p>
-         </fieldset>
 
          <p><button>Submit</button></p>
         </form>
@@ -162,6 +223,9 @@ class CalendarHome(Resource):
             return StatusPage()
         if name == 'transmit':
             return FormPage()
+        if name == 'config':
+            return ConfigPage()
+
         if name.isdigit():
             return YearPage(int(name))
         else:
