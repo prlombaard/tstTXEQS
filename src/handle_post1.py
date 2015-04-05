@@ -7,6 +7,7 @@ from twisted.web.resource import Resource, NoResource
 from twisted.web.server import Site
 from calendar import calendar
 from datetime import datetime, date, time
+from twisted.web.util import redirectTo
 
 # global module variables
 # TODO: Add server global variables here
@@ -17,8 +18,11 @@ server_number_of_views = 0
 # TODO: Load securely from config file
 server_users_and_passwords = {'user': 'user', 'admin': 'admin'}
 server_debugmode = "logging off"
-server_modes = ['Fixed Frequency', 'Sweep Frequency', 'Hop Frequency']
-server_vars = {'txmode': server_modes[0], 'fixedstart': 1000000, 'fixedstop': 1200000, 'hopdelay': 200, 'sweepstart': 1000000, 'sweepstop': 1200000}
+server_txmode_string = ['Fixed Frequency', 'Sweep Frequency', 'Hop Frequency']
+server_varheader = ['txmode', 'fixedstart', 'fixedstop', 'hopdelay', 'sweepstart', 'sweepstop']
+
+
+server_vars = {server_varheader[0]: server_txmode_string[0], server_varheader[1]: 1000000, server_varheader[2]: 1200000, server_varheader[3]: 200, server_varheader[4]: 1000000, server_varheader[5]: 1200000}
 
 
 class YearPage(Resource):
@@ -87,12 +91,13 @@ class ConfigPage(Resource):
             server_debugmode = request.args['logging_mode'][0]
 
 
-        return """
-        <html>
-        <body>You submitted: %s</body>
-        </html>
-        """ % ("\r\n".join(request.content))
+        #return """
+        #<html>
+        #<body>You submitted: %s</body>
+        #</html>
+        #""" % ("\r\n".join(request.content))
 
+        return redirectTo("/config", request)
 
 
 class StatusPage(Resource):
@@ -108,6 +113,14 @@ class StatusPage(Resource):
 
         server_number_of_views += 1
 
+        responseBody = ""
+
+        for k, v in server_vars.items():
+            # value is returned as a list string ['string'], convert to only a string
+            if type(v) == 'list':
+                v = v[0]
+            responseBody += ("<h3>%s : </h3>%s" % (k, v))
+
         return "<title>Status Page</title><html><body><h1>%s</h1>" \
                "<h2>Web Server Parameters</h2>" \
                "<h3>Server Started                : </h3>%s" \
@@ -115,20 +128,19 @@ class StatusPage(Resource):
                "<h3>Number of Views               : </h3>%d" \
                "<h3>Debug Mode                    : </h3>%s" \
                "<h2>Transmitter Parameters</h2>" \
-               "<h3>Transmit Mode                 : </h3>%s" \
-               "<h3>Fixed Frequency Start         : </h3>%s" \
-               "<h3>Fixed Frequency Stop          : </h3>%s" \
+               "%s" \
                "</body></html>" % ("Status Page", server_starttime.strftime("%Y-%M-%d %H:%M:%S"),
                                    datetime.now() - server_starttime, server_number_of_views,
-                                   server_debugmode, server_txmode, server_fixedstart, server_fixedstop)
-server_txmode = server_modes[0]
+                                   server_debugmode, responseBody)
 
-server_fixedstart = 1000000
-server_fixedstop = 1200000
-server_hopdelay = 200
+#server_txmode = server_txmode_string[0]
 
-server_sweepstart = 1000000
-server_sweepstop = 1200000
+#server_fixedstart = 1000000
+#server_fixedstop = 1200000
+#server_hopdelay = 200
+
+#server_sweepstart = 1000000
+#server_sweepstop = 1200000
 
 
 class FormPage(Resource):
@@ -138,9 +150,6 @@ class FormPage(Resource):
     def __init__(self):
         Resource.__init__(self)
         print "FormPage:__init__"
-
-    def __del__(self):
-        print "FormPage:__del__"
 
     def render_GET(self, request):
         print "FormPage::render_GET"
@@ -158,6 +167,7 @@ class FormPage(Resource):
         #</html>
         #"""
 
+        # TODO: Dynamically display page based on server variables
         return """
         <title>Transmit Page</title>
         <h1>Transmit Page</h1>
@@ -165,24 +175,32 @@ class FormPage(Resource):
 
          <fieldset>
           <h2>Transmit Mode</h2>
-          <p><label> <input type=radio name=mode required value="fixed freq"> Fixed Frequency </label></p>
-          <p><label> <input type=radio name=mode required value="sweep freq"> Sweep Frequency </label></p>
-          <p><label> <input type=radio name=mode required value="freq hop">   Hop Frequency </label></p>
+          <p><label> <input type=radio name=%s required value="%s"> %s </label></p>
+          <p><label> <input type=radio name=%s required value="%s"> %s </label></p>
+          <p><label> <input type=radio name=%s required value="%s"> %s </label></p>
          </fieldset>
 
 
          <h2>Fixed Frequency</h2>
-         <p><label>Fstart(Hz) <input name="fixedstart" minlength=6 value=1000000 required></label></p>
-         <p><label>Fstop(Hz)  <input name="fixedstop"  value=1200000 required></label></p>
-         <p><label>Delay(ms)  <input name="hopdelay" value=200     required></label></p>
+         <p><label>Fstart(Hz) <input name="%s" value=%s required></label></p>
+         <p><label>Fstop(Hz)  <input name="%s" value=%s required></label></p>
+         <p><label>Delay(ms)  <input name="%s" value=%s required></label></p>
 
          <h2>Sweep Frequency</h2>
-         <p><label>Fstart <input name="sweepstart" value=1000000  required></label></p>
-         <p><label>Fstop <input name="sweepstop"   value=1200000 required></label></p>
+         <p><label>Fstart <input name="%s" value=%s  required></label></p>
+         <p><label>Fstop <input name="%s"  value=%s required></label></p>
 
          <p><button>Submit</button></p>
         </form>
-        """
+        """ % (server_varheader[0], server_txmode_string[0], server_txmode_string[0],
+               server_varheader[0], server_txmode_string[1], server_txmode_string[1],
+               server_varheader[0], server_txmode_string[2], server_txmode_string[2],
+               server_varheader[1], server_vars[server_varheader[1]],
+               server_varheader[2], server_vars[server_varheader[2]],
+               server_varheader[3], server_vars[server_varheader[3]],
+               server_varheader[4], server_vars[server_varheader[4]],
+               server_varheader[5], server_vars[server_varheader[5]]
+               )
 
     def render_POST(self, request):
         print "FormPage::render_POST"
@@ -194,7 +212,20 @@ class FormPage(Resource):
         print "Request.args:"
         if request.args is not None:
             for k, v in request.args.items():
-                print "[%s]:[%s]" % (k, v)
+                print "[%s]:[%s]:[%s]" % (k, v, k in server_vars)
+
+                #if type(v) == type([0]):
+                if isinstance(v, type([0])):
+                    j = v[0]
+                else:
+                    j = v
+
+                # test if key is in server variable dictionary
+                if k in server_vars:
+                    # key exists in dictionary so go ahead and set
+                    # set dictionaries key k to value v
+                    server_vars[k] = j
+
         #print "Request type = [%s]" % type(request)
         #print request
 
@@ -205,11 +236,13 @@ class FormPage(Resource):
         #<body>You submitted: %s</body>
         #</html>
         #""" % (cgi.escape(request.args["form-field"][0]),)
-        return """
-        <html>
-        <body>You submitted: %s</body>
-        </html>
-        """ % ("\r\n".join(request.content))
+#        return """
+#        <html>
+#        <body>You submitted: %s</body>
+#        </html>
+#        """ % ("\r\n".join(request.content))
+
+        return redirectTo("/transmit", request)
 
 # TODO: Refactor this class's name
 class CalendarHome(Resource):
