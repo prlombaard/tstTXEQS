@@ -9,11 +9,13 @@ from calendar import calendar
 from datetime import datetime, date, time
 
 # global module variables
+# TODO: Add server global variables here
 server_state = ""
 server_starttime = datetime.today()
 server_number_of_views = 0
 
 class YearPage(Resource):
+    # TODO: Add class comment here
     def __init__(self, year):
         Resource.__init__(self)
         self.year = year
@@ -26,6 +28,7 @@ class YearPage(Resource):
 
 
 class AboutPage(Resource):
+    # TODO: Add class comment here
     def __init__(self):
         Resource.__init__(self)
 
@@ -37,6 +40,7 @@ class AboutPage(Resource):
 
 
 class StatusPage(Resource):
+    # TODO: Add class comment here
     def __init__(self):
         Resource.__init__(self)
 
@@ -53,6 +57,7 @@ class StatusPage(Resource):
 
 
 class FormPage(Resource):
+    # TODO: Add class comment here
     isLeaf = True
 
     def __init__(self):
@@ -145,7 +150,9 @@ class FormPage(Resource):
         </html>
         """ % ("\r\n".join(request.content))
 
+# TODO: Refactor this class's name
 class CalendarHome(Resource):
+    # TODO: Add class comment here
     def getChild(self, name, request):
         if name == '':
             return self
@@ -167,7 +174,7 @@ class CalendarHome(Resource):
                "<h3>To see transmitter input parameter form goto URL/transmit</h3>" \
                "</body></html>"
 
-
+# TODO: if __name__ == __main"__ here
 
 port_number = 8000
 server_starttime = datetime.today()
