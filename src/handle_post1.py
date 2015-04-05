@@ -8,6 +8,10 @@ from twisted.web.server import Site
 from calendar import calendar
 from datetime import datetime, date, time
 from twisted.web.util import redirectTo
+import sys
+from subprocess import Popen
+from os import pipe, devnull
+from time import sleep
 
 # global module variables
 # TODO: Add server global variables here
@@ -18,11 +22,78 @@ server_number_of_views = 0
 # TODO: Load securely from config file
 server_users_and_passwords = {'user': 'user', 'admin': 'admin'}
 server_debugmode = "logging off"
-server_txmode_string = ['Fixed Frequency', 'Sweep Frequency', 'Hop Frequency']
+server_txmode_string = ['Fixed Frequency', 'Sweep Frequency', 'Hop Frequency', 'Off']
 server_varheader = ['txmode', 'fixedstart', 'fixedstop', 'hopdelay', 'sweepstart', 'sweepstop']
+
+server_logging_mode = {'Append Log': 'Logging on', 'Rewrite log': 'Logging on', 'Off': 'Logging'}
 
 
 server_vars = {server_varheader[0]: server_txmode_string[0], server_varheader[1]: 1000000, server_varheader[2]: 1200000, server_varheader[3]: 200, server_varheader[4]: 1000000, server_varheader[5]: 1200000}
+
+# piFM related variables
+music_pipe_r, music_pipe_w = pipe()
+fm_process = None
+
+# TODO: Add logging like in import logging
+
+
+def isRunning(processid):
+    #print "isrunning:Start"
+    try:
+        if (processid.poll() is not None) or (processid is None):
+            #print "process pid[%d] have terminated with exitcode [%d]" % (fm_process.pid, fm_process.poll())
+            return False
+        else:
+            return True
+    except TypeError as e1:
+        #print "process pid[%d] have not yet terminated" % (fm_process.pid)
+        #print "TypeError %s" % e1
+        return True
+    except AttributeError as e2:
+        #print "process pid[%d] have not yet terminated" % (fm_process.pid)
+        #print "AttributeError %s" % e2
+        return False
+
+
+def runprun_pifm():
+    global fm_process
+
+    # TODO: Only create, terminate process if transmitter parameters have changed
+
+    # TODO: Move the platform checking out of this method, use common array name in Popen, i.e. not hardcoded string literals
+    if sys.platform.startswith('win'):
+        print "Platform : Windows"
+
+        with open(devnull, "w") as dev_null:
+            # Create the process in specific platform modes
+            # TODO: create processes in different ways depending on Transmitter Mode
+#            if server_vars[server_varheader[0]] == server_txmode_string[0]:
+            # Transmit mode is set to Fixed Frequency
+            # Test if fm_process is already running
+            if isRunning(fm_process) == False:
+                # Process not running so create new one
+                pass
+            else:
+                # Process already created and running
+                # Terminate current pifm process
+                try:
+                    print "Process already exists, terminating"
+                    fm_process.terminate()
+                except AttributeError:
+                    pass
+                # TODO: Check how long to wait before creating new process
+                sleep(1)
+
+            print "Creating new process"
+            fm_process = Popen(["ping", "127.0.0.1", "-t"], stdin=music_pipe_r, stdout=dev_null)
+            #fm_process = Popen(["ping", "127.0.0.1", "-t"], stdin=music_pipe_r)
+
+            print "fm process PID [%d]" % (fm_process.pid)
+    else:
+        print "Platform : Linux"
+        with open(devnull, "w") as dev_null:
+            # TODO: Temporary fix if os is Windows then use pipe otherwise use the real command assuming were on rPi platform
+            fm_process = Popen(["/root/pifm", "-", str(frequency), "44100", "stereo" if play_stereo else "mono"], stdin=music_pipe_r, stdout=dev_null)
 
 
 class YearPage(Resource):
@@ -121,17 +192,29 @@ class StatusPage(Resource):
                 v = v[0]
             responseBody += ("<h3>%s : </h3>%s" % (k, v))
 
+            txpower = True
+
+            print "process.poll()"
+            try:
+                if fm_process.poll() is not None:
+                    print "process pid[%d] have terminated with exitcode [%d]" % (fm_process.pid, fm_process.poll())
+                    txpower = False
+            except TypeError:
+                print "process pid[%d] have not yet terminated" % (fm_process.pid)
+
         return "<title>Status Page</title><html><body><h1>%s</h1>" \
                "<h2>Web Server Parameters</h2>" \
                "<h3>Server Started                : </h3>%s" \
                "<h3>Running Time                  : </h3>%s" \
                "<h3>Number of Views               : </h3>%d" \
                "<h3>Debug Mode                    : </h3>%s" \
+               "<h3>Transmitter powered on        : </h3>%s" \
+               "<h3>piFM process identifier (pid) : </h3>%s" \
                "<h2>Transmitter Parameters</h2>" \
                "%s" \
                "</body></html>" % ("Status Page", server_starttime.strftime("%Y-%M-%d %H:%M:%S"),
                                    datetime.now() - server_starttime, server_number_of_views,
-                                   server_debugmode, responseBody)
+                                   server_debugmode, txpower, fm_process.pid if txpower else "None", responseBody)
 
 #server_txmode = server_txmode_string[0]
 
@@ -178,6 +261,7 @@ class FormPage(Resource):
           <p><label> <input type=radio name=%s required value="%s"> %s </label></p>
           <p><label> <input type=radio name=%s required value="%s"> %s </label></p>
           <p><label> <input type=radio name=%s required value="%s"> %s </label></p>
+          <p><label> <input type=radio name=%s required value="%s"> %s </label></p>
          </fieldset>
 
 
@@ -195,6 +279,7 @@ class FormPage(Resource):
         """ % (server_varheader[0], server_txmode_string[0], server_txmode_string[0],
                server_varheader[0], server_txmode_string[1], server_txmode_string[1],
                server_varheader[0], server_txmode_string[2], server_txmode_string[2],
+               server_varheader[0], server_txmode_string[3], server_txmode_string[3],
                server_varheader[1], server_vars[server_varheader[1]],
                server_varheader[2], server_vars[server_varheader[2]],
                server_varheader[3], server_vars[server_varheader[3]],
@@ -203,6 +288,7 @@ class FormPage(Resource):
                )
 
     def render_POST(self, request):
+        global fm_process
         print "FormPage::render_POST"
 
         print "Methods and Attributes of request"
@@ -225,6 +311,31 @@ class FormPage(Resource):
                     # key exists in dictionary so go ahead and set
                     # set dictionaries key k to value v
                     server_vars[k] = j
+
+        # test if transmitter must be switched on or off
+        if server_vars[server_varheader[0]] == server_txmode_string[3]:
+            # transmitter must be switched off
+            print "Switch off transmitter"
+
+            #test if fm_process exists
+            if fm_process is not None:
+                print "Terminating process pid[%d]" % fm_process.pid
+                fm_process.terminate()
+
+        if server_vars[server_varheader[0]] == server_txmode_string[0]:
+            # transmitter must be switched on in Fixed Frequency mode
+            print "Switch on transmitter in fixed frequency mode"
+            runprun_pifm()
+
+        if server_vars[server_varheader[0]] == server_txmode_string[1]:
+            # transmitter must be switched on in Fixed Frequency mode
+            print "Switch on transmitter in sweep frequency mode"
+            runprun_pifm()
+
+        if server_vars[server_varheader[0]] == server_txmode_string[2]:
+            # transmitter must be switched on in Fixed Frequency mode
+            print "Switch on transmitter in sweep frequency mode"
+            runprun_pifm()
 
         #print "Request type = [%s]" % type(request)
         #print request
@@ -280,11 +391,21 @@ print "Started handle_post1.py"
 print "Listening on port [%d]" % port_number
 print "Start time : %s" % server_starttime.strftime("%Y-%M-%d %H:%M:%S")
 
+print "Starting pifm"
+runprun_pifm()
+print "process.poll()"
+try:
+    print "process pid[%d] have terminated with exitcode [%d]" % (fm_process.pid, fm_process.poll())
+except TypeError:
+    print "process pid[%d] have not yet terminated" % (fm_process.pid)
+
 server_starttime.strftime
 
 root = CalendarHome()
 factory = Site(root)
 reactor.listenTCP(port_number, factory)
+
+print "About to reactor.run()"
 reactor.run()
 
 print "Stopped handle_post1.py"
