@@ -1,6 +1,9 @@
-__author__ = '0400428'
+__author__ = 'prlombaard@gmail.com'
 
-#Example 4-8. handle_post.py
+"""
+Original Source: Twisted Examples - e-book
+Example 4-8. handle_post.py
+"""
 
 from twisted.internet import reactor
 from twisted.web.resource import Resource, NoResource
@@ -24,10 +27,7 @@ server_users_and_passwords = {'user': 'user', 'admin': 'admin'}
 server_debugmode = "logging off"
 server_txmode_string = ['Fixed Frequency', 'Sweep Frequency', 'Hop Frequency', 'Off']
 server_varheader = ['txmode', 'fixedstart', 'fixedstop', 'hopdelay', 'sweepstart', 'sweepstop']
-
 server_logging_mode = {'Append Log': 'Logging on', 'Rewrite log': 'Logging on', 'Off': 'Logging'}
-
-
 server_vars = {server_varheader[0]: server_txmode_string[0], server_varheader[1]: 1000000, server_varheader[2]: 1200000, server_varheader[3]: 200, server_varheader[4]: 1000000, server_varheader[5]: 1200000}
 
 # piFM related variables
@@ -38,20 +38,14 @@ fm_process = None
 
 
 def isRunning(processid):
-    #print "isrunning:Start"
     try:
         if (processid.poll() is not None) or (processid is None):
-            #print "process pid[%d] have terminated with exitcode [%d]" % (fm_process.pid, fm_process.poll())
             return False
         else:
             return True
     except TypeError as e1:
-        #print "process pid[%d] have not yet terminated" % (fm_process.pid)
-        #print "TypeError %s" % e1
         return True
     except AttributeError as e2:
-        #print "process pid[%d] have not yet terminated" % (fm_process.pid)
-        #print "AttributeError %s" % e2
         return False
 
 
@@ -167,12 +161,7 @@ class ConfigPage(Resource):
             global server_debugmode
             server_debugmode = request.args['logging_mode'][0]
 
-
-        #return """
-        #<html>
-        #<body>You submitted: %s</body>
-        #</html>
-        #""" % ("\r\n".join(request.content))
+            # TODO: Add code to actually switch on/off logging modes
 
         return redirectTo("/config", request)
 
@@ -188,8 +177,6 @@ class StatusPage(Resource):
     def render_GET(self, request):
         # global only needed when global var value needs to change
         global server_number_of_views
-        #server_starttime
-        #server_debugmode
 
         server_number_of_views += 1
 
@@ -226,15 +213,6 @@ class StatusPage(Resource):
                                    datetime.now() - server_starttime, server_number_of_views,
                                    server_debugmode, txpower, fm_process.pid if txpower else "None", responseBody)
 
-#server_txmode = server_txmode_string[0]
-
-#server_fixedstart = 1000000
-#server_fixedstop = 1200000
-#server_hopdelay = 200
-
-#server_sweepstart = 1000000
-#server_sweepstop = 1200000
-
 
 class FormPage(Resource):
     # TODO: Add class comment here
@@ -249,16 +227,6 @@ class FormPage(Resource):
         global server_number_of_views
         server_number_of_views += 1
         print "Number of GETs [%d]" % server_number_of_views
-        #return """
-        #<html>
-        #<body>
-        #<form method="POST">
-        #<input name="form-field" type="text" />
-        #<input type="submit" />
-        #</form>
-        #</body>
-        #</html>
-        #"""
 
         # TODO: Dynamically display page based on server variables
         return """
@@ -347,23 +315,8 @@ class FormPage(Resource):
             print "Switch on transmitter in sweep frequency mode"
             runprun_pifm()
 
-        #print "Request type = [%s]" % type(request)
-        #print request
-
-
-        request
-        #return """
-        #<html>
-        #<body>You submitted: %s</body>
-        #</html>
-        #""" % (cgi.escape(request.args["form-field"][0]),)
-#        return """
-#        <html>
-#        <body>You submitted: %s</body>
-#        </html>
-#        """ % ("\r\n".join(request.content))
-
         return redirectTo("/transmit", request)
+
 
 # TODO: Refactor this class's name
 class CalendarHome(Resource):
