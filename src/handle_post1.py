@@ -17,12 +17,11 @@ from os import pipe, devnull
 from time import sleep
 
 # global module variables
-# TODO: Add server global variables here
 server_state = ""
 server_starttime = datetime.today()
 server_number_of_views = 0
 
-# TODO: Load securely from config file
+# TODO: #1, Load securely from config file
 server_users_and_passwords = {'user': 'user', 'admin': 'admin'}
 server_debugmode = "logging off"
 server_txmode_string = ['Fixed Frequency', 'Sweep Frequency', 'Hop Frequency', 'Off']
@@ -34,7 +33,7 @@ server_vars = {server_varheader[0]: server_txmode_string[0], server_varheader[1]
 music_pipe_r, music_pipe_w = pipe()
 fm_process = None
 
-# TODO: Add logging like in import logging
+# TODO: #2, Add logging like in import logging
 
 
 def isRunning(processid):
@@ -52,9 +51,9 @@ def isRunning(processid):
 def run_pifm():
     global fm_process
 
-    # TODO: Only create, terminate process if transmitter parameters have changed
+    # TODO: #3, Only create, terminate process if transmitter parameters have changed
 
-    # TODO: Move the platform checking out of this method, use common array name in Popen, i.e. not hardcoded string literals
+    # TODO: #4, Move the platform checking out of this method, use common array name in Popen, i.e. not hardcoded string literals
     if sys.platform.startswith('win'):
         print "Platform : Windows"
 
@@ -75,7 +74,7 @@ def run_pifm():
                     fm_process.terminate()
                 except AttributeError:
                     pass
-                # TODO: Check how long to wait before creating new process
+                # TODO: #8, Check how long to wait before creating new process
                 sleep(1)
 
             print "Creating new process"
@@ -94,7 +93,7 @@ def run_pifm():
 
 
 class YearPage(Resource):
-    # TODO: Add class comment here
+    # TODO: #9, Add class comment here
     isLeaf = True
 
     def __init__(self, year):
@@ -109,7 +108,7 @@ class YearPage(Resource):
 
 
 class AboutPage(Resource):
-    # TODO: Add class comment here
+    # TODO: #9, Add class comment here
     isLeaf = True
 
     def __init__(self):
@@ -123,7 +122,7 @@ class AboutPage(Resource):
 
 
 class ConfigPage(Resource):
-    # TODO: Add class comment here
+    # TODO: #9, Add class comment here
     isLeaf = True
 
     def __init__(self):
@@ -164,13 +163,13 @@ class ConfigPage(Resource):
             global server_debugmode
             server_debugmode = request.args['logging_mode'][0]
 
-            # TODO: Add code to actually switch on/off logging modes
+            # TODO: #10, Add code to actually switch on/off logging modes
 
         return redirectTo("/config", request)
 
 
 class StatusPage(Resource):
-    # TODO: Add class comment here
+    # TODO: #9, Add class comment here
 
     isLeaf = True
 
@@ -195,7 +194,7 @@ class StatusPage(Resource):
 
         print "process.poll()"
         try:
-            # TODO: Check these if statements, something tells me they are incorrectly written
+            # TODO: #11, Possible bug, Check these if statements, something tells me they are incorrectly written
             if fm_process.poll() is not None:
                 print "process pid[%d] have terminated with exitcode [%d]" % (fm_process.pid, fm_process.poll())
                 txpower = False
@@ -218,7 +217,7 @@ class StatusPage(Resource):
 
 
 class FormPage(Resource):
-    # TODO: Add class comment here
+    # TODO: #9, Add class comment here
     isLeaf = True
 
     def __init__(self):
@@ -231,7 +230,6 @@ class FormPage(Resource):
         server_number_of_views += 1
         print "Number of GETs [%d]" % server_number_of_views
 
-        # TODO: Dynamically display page based on server variables
         return """
         <title>Transmit Page</title>
         <h1>Transmit Page</h1>
@@ -276,7 +274,7 @@ class FormPage(Resource):
         for i in request.__dict__:
             print "[%s]:[%s]" % (i, getattr(request, i))
 
-        # TODO: Check validity of arguments before assigning to server variables
+        # TODO: #12, Check validity of arguments before assigning to server variables
 
         print "Request.args:"
         if request.args is not None:
@@ -310,10 +308,14 @@ class FormPage(Resource):
             print "Switch on transmitter in fixed frequency mode"
             run_pifm()
 
+        # TODO: #5 Implement frequency sweep mode
+
         if server_vars[server_varheader[0]] == server_txmode_string[1]:
             # transmitter must be switched on in Fixed Frequency mode
             print "Switch on transmitter in sweep frequency mode"
             run_pifm()
+
+        # TODO: #6 Implement frequency hopper mode
 
         if server_vars[server_varheader[0]] == server_txmode_string[2]:
             # transmitter must be switched on in Fixed Frequency mode
@@ -323,9 +325,8 @@ class FormPage(Resource):
         return redirectTo("/transmit", request)
 
 
-# TODO: Refactor this class's name
 class HomePage(Resource):
-    # TODO: Add class comment here
+    # TODO: #9, Add class comment here
     def getChild(self, name, request):
         if name == '':
             return self
@@ -350,7 +351,9 @@ class HomePage(Resource):
                "<h3>To see transmitter input parameter form goto URL/transmit</h3>" \
                "</body></html>"
 
-# TODO: if __name__ == __main"__ here
+# TODO: #7, if __name__ == __main"__ here
+
+# TODO: Implement argument parsing, linux style help in the command line
 
 port_number = 8000
 server_starttime = datetime.today()
