@@ -2,14 +2,14 @@ __author__ = 'prlombaard@gmail.com'
 
 """
 Original Source: Twisted Examples - e-book
-Example 4-8. handle_post.py
+                 Example 4-8. handle_post.py
 """
 
 from twisted.internet import reactor
 from twisted.web.resource import Resource, NoResource
 from twisted.web.server import Site
 from calendar import calendar
-from datetime import datetime, date, time
+from datetime import datetime
 from twisted.web.util import redirectTo
 import sys
 from subprocess import Popen
@@ -49,7 +49,7 @@ def isRunning(processid):
         return False
 
 
-def runprun_pifm():
+def run_pifm():
     global fm_process
 
     # TODO: Only create, terminate process if transmitter parameters have changed
@@ -79,7 +79,10 @@ def runprun_pifm():
                 sleep(1)
 
             print "Creating new process"
+            # create process that takes input from the pipe "music_pipe_r" and output to null device (not to the screen)
             fm_process = Popen(["ping", "127.0.0.1", "-t"], stdin=music_pipe_r, stdout=dev_null)
+
+            # create process that takes input from the pipe "music_pipe_r" and output the terminal (screen)
             #fm_process = Popen(["ping", "127.0.0.1", "-t"], stdin=music_pipe_r)
 
             print "fm process PID [%d]" % (fm_process.pid)
@@ -273,6 +276,8 @@ class FormPage(Resource):
         for i in request.__dict__:
             print "[%s]:[%s]" % (i, getattr(request, i))
 
+        # TODO: Check validity of arguments before assigning to server variables
+
         print "Request.args:"
         if request.args is not None:
             for k, v in request.args.items():
@@ -303,23 +308,23 @@ class FormPage(Resource):
         if server_vars[server_varheader[0]] == server_txmode_string[0]:
             # transmitter must be switched on in Fixed Frequency mode
             print "Switch on transmitter in fixed frequency mode"
-            runprun_pifm()
+            run_pifm()
 
         if server_vars[server_varheader[0]] == server_txmode_string[1]:
             # transmitter must be switched on in Fixed Frequency mode
             print "Switch on transmitter in sweep frequency mode"
-            runprun_pifm()
+            run_pifm()
 
         if server_vars[server_varheader[0]] == server_txmode_string[2]:
             # transmitter must be switched on in Fixed Frequency mode
             print "Switch on transmitter in sweep frequency mode"
-            runprun_pifm()
+            run_pifm()
 
         return redirectTo("/transmit", request)
 
 
 # TODO: Refactor this class's name
-class CalendarHome(Resource):
+class HomePage(Resource):
     # TODO: Add class comment here
     def getChild(self, name, request):
         if name == '':
@@ -355,7 +360,7 @@ print "Listening on port [%d]" % port_number
 print "Start time : %s" % server_starttime.strftime("%Y-%M-%d %H:%M:%S")
 
 print "Starting pifm"
-runprun_pifm()
+run_pifm()
 print "process.poll()"
 try:
     print "process pid[%d] have terminated with exitcode [%d]" % (fm_process.pid, fm_process.poll())
@@ -364,7 +369,7 @@ except TypeError:
 
 server_starttime.strftime
 
-root = CalendarHome()
+root = HomePage()
 factory = Site(root)
 reactor.listenTCP(port_number, factory)
 
