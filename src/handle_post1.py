@@ -27,11 +27,13 @@ server_debugmode = "logging off"
 server_txmode_string = ['Fixed Frequency', 'Sweep Frequency', 'Hop Frequency', 'Off']
 server_varheader = ['txmode', 'fixedstart', 'fixedstop', 'hopdelay', 'sweepstart', 'sweepstop']
 server_logging_mode = {'Append Log': 'Logging on', 'Rewrite log': 'Logging on', 'Off': 'Logging'}
-server_vars = {server_varheader[0]: server_txmode_string[0], server_varheader[1]: 1000000, server_varheader[2]: 1200000, server_varheader[3]: 200, server_varheader[4]: 1000000, server_varheader[5]: 1200000}
+server_vars = {server_varheader[0]: server_txmode_string[0], server_varheader[1]: 88900000, server_varheader[2]: 100000000, server_varheader[3]: 200, server_varheader[4]: 1000000, server_varheader[5]: 1200000}
 
 # piFM related variables
 music_pipe_r, music_pipe_w = pipe()
 fm_process = None
+frequency = 88.9
+play_stereo = True
 
 # TODO: #2, Add logging like in import logging
 
@@ -50,6 +52,7 @@ def isRunning(processid):
 
 def run_pifm():
     global fm_process
+    global frequency
 
     # TODO: #3, Only create, terminate process if transmitter parameters have changed
 
@@ -89,7 +92,11 @@ def run_pifm():
         print "Platform : Linux"
         with open(devnull, "w") as dev_null:
             # TODO: Temporary fix if os is Windows then use pipe otherwise use the real command assuming were on rPi platform
+            # TODO: Bug, check if process already open, kill process then create new one
+            print "run_pifm(): Frequency = [%0.2f]" % frequency
             fm_process = Popen(["/root/pifm", "-", str(frequency), "44100", "stereo" if play_stereo else "mono"], stdin=music_pipe_r, stdout=dev_null)
+            print "run_pifm():process created pid(%d)" % (fm_process.pid)
+            #fm_process = Popen(["ping", "127.0.0.1"], stdin=music_pipe_r, stdout=dev_null)
 
 
 class YearPage(Resource):
@@ -268,6 +275,7 @@ class FormPage(Resource):
 
     def render_POST(self, request):
         global fm_process
+        global frequency
         print "FormPage::render_POST"
 
         print "Methods and Attributes of request"
@@ -303,24 +311,66 @@ class FormPage(Resource):
                 print "Terminating process pid[%d]" % fm_process.pid
                 fm_process.terminate()
 
+        # TODO: #?, Implement fixed frequency
+        
         if server_vars[server_varheader[0]] == server_txmode_string[0]:
             # transmitter must be switched on in Fixed Frequency mode
             print "Switch on transmitter in fixed frequency mode"
+
+            # Set broadcast frequency
+            frequency = int(server_vars[server_varheader[1]]) / 1000000.0
+            
+            print "Frequency set to %0.2f" % frequency
+            
             run_pifm()
 
-        # TODO: #5 Implement frequency sweep mode
+        # TODO: #5, Implement frequency sweep mode
 
         if server_vars[server_varheader[0]] == server_txmode_string[1]:
             # transmitter must be switched on in Fixed Frequency mode
             print "Switch on transmitter in sweep frequency mode"
+            
             run_pifm()
+            
 
-        # TODO: #6 Implement frequency hopper mode
+        # TODO: #6, Implement frequency hopper mode
 
         if server_vars[server_varheader[0]] == server_txmode_string[2]:
             # transmitter must be switched on in Fixed Frequency mode
             print "Switch on transmitter in sweep frequency mode"
-            run_pifm()
+            
+
+            # TODO: use the hop delay server var instead of local temp variable
+            # calculate hop delay
+            hop_sleep = int(server_vars[server_varheader[3]]) / 1000
+            hop_sleep = 1 if hop_sleep < 1 else hop_sleep
+            
+            print "Hopper delay %0.2f" % (hop_sleep)
+
+            # Set broadcast frequency            
+            # Create list of frequencies to hop over
+            hop_set = [88.2, 88.9, 88.2, 88.9, 88.2]
+            
+            # Iterate though the list of hop frequencies
+            for i in xrange(0,5):
+                # Set hopping emission broadcast frequency
+                #frequency = int(server_vars[server_varheader[1]]) / 1000000.0
+                frequency = hop_set[i]
+                
+                print "Frequency set to %0.2f" % frequency
+                
+                # activate transmission
+                run_pifm()
+                
+                # sleep for hop delay, so transmission is active for hop_delay seconds
+                # TODO: use a better sleep function than have sub 1 second resolution
+                sleep(hop_sleep)
+                
+                # terminate transmission
+                print "Terminating process pid[%d]" % fm_process.pid
+                fm_process.terminate()
+                
+                sleep(1)
 
         return redirectTo("/transmit", request)
 
