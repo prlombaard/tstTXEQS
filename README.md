@@ -14,5 +14,12 @@
 5. login as pi - raspberry
 
 
+## Requirements for pifm to run
+sudo apt-get install ffmpeg
+
+## Requirements for pirateradio.py to run
 sudo apt-get update
 sudo apt-get install python3
+
+## Requirements for Python Twisted Network Library to run
+sudo apt-get install python-twisted

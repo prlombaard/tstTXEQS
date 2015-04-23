@@ -21,7 +21,7 @@ shuffle = False
 repeat_all = False
 merge_audio_in = False
 play_stereo = True
-music_dir = "/boot/pirateradio"
+music_dir = "/boot/music"
 
 music_pipe_r,music_pipe_w = os.pipe()
 microphone_pipe_r,microphone_pipe_w = os.pipe()

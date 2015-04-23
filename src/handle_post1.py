@@ -20,10 +20,17 @@ from subprocess import Popen
 from os import pipe, devnull
 from time import sleep
 
+# BUG: Possible Bug, include a test to see what python is being used, in python3 the Config Parser is renamed to configparser
+import ConfigParser
+
 # global module variables
 server_state = ""
 server_starttime = datetime.today()
 server_number_of_views = 0
+
+# Web Server listening socket port to bind to
+port_number = 80
+
 
 # TODO: #1, Load securely from config file
 server_users_and_passwords = {'user': 'user', 'admin': 'admin'}
@@ -35,13 +42,38 @@ server_vars = {server_varheader[0]: server_txmode_string[0], server_varheader[1]
 
 # piFM related variables
 # path for pifm executable
-PIFM_BIN = "/boot/pirateradio/pifm"
+PIFM_BIN = "/home/pi/pirateradio/pifm"
+config_location = "/home/pi/mysrv/mysrv.conf"
 music_pipe_r, music_pipe_w = pipe()
 fm_process = None
 frequency = 88.9
 play_stereo = True
+music_dir = "/boot/music"
 
 # TODO: #2, Add logging like in import logging
+
+def read_config():
+    global frequency
+    global music_dir
+    global play_stereo
+    global port_number
+    global config_location
+    
+    try:
+        config = ConfigParser.RawConfigParser()
+        config.read(config_location)
+    except:
+        print("Error reading from config file @ [%s]." % config_location)
+    else:
+        try:
+            print "Parsing values from file"
+            play_stereo = config.getboolean('mysrv', 'stereo_playback')
+            frequency = config.getfloat('mysrv','frequency')
+            music_dir = config.get('mysrv', 'music_dir')
+            port_number = config.getint('mysrv', 'port_number')
+        except ConfigParser.Error as e:
+            print("Config Parsing Error")
+            print(e)
 
 
 def isRunning(processid):
@@ -485,10 +517,17 @@ class HomePage(Resource):
 
 # TODO: #7, if __name__ == __main"__ here
 
-# TODO: Implement argument parsing, linux style help in the command line
+# Call config loading function
+print "Calling Config File Loader"
 
-# Web Server listening socket port to bind to
-port_number = 8000
+read_config()
+
+print "Config Loaded"
+
+print "Config:"
+print "Port Number to bind to: %d" % port_number
+
+# TODO: Implement argument parsing, linux style help in the command line
 
 # Time when the Web server is started
 server_starttime = datetime.today()
