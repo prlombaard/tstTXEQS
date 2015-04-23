@@ -1,3 +1,7 @@
+#!/usr/bin/env python
+# Network Controlled Pirate Radio using pifm
+# Author: Rudolph Lombaard
+
 __author__ = 'prlombaard@gmail.com'
 
 """
@@ -30,6 +34,8 @@ server_logging_mode = {'Append Log': 'Logging on', 'Rewrite log': 'Logging on', 
 server_vars = {server_varheader[0]: server_txmode_string[0], server_varheader[1]: 88900000, server_varheader[2]: 100000000, server_varheader[3]: 200, server_varheader[4]: 1000000, server_varheader[5]: 1200000}
 
 # piFM related variables
+# path for pifm executable
+PIFM_BIN = "/boot/pirateradio/pifm"
 music_pipe_r, music_pipe_w = pipe()
 fm_process = None
 frequency = 88.9
@@ -94,20 +100,31 @@ def run_pifm():
             # TODO: Temporary fix if os is Windows then use pipe otherwise use the real command assuming were on rPi platform
             # TODO: Bug, check if process already open, kill process then create new one
             print "run_pifm(): Frequency = [%0.2f]" % frequency
-            fm_process = Popen(["/root/pifm", "-", str(frequency), "44100", "stereo" if play_stereo else "mono"], stdin=music_pipe_r, stdout=dev_null)
+            fm_process = Popen([PIFM_BIN, "-", str(frequency), "44100", "stereo" if play_stereo else "mono"], stdin=music_pipe_r, stdout=dev_null)
             print "run_pifm():process created pid(%d)" % (fm_process.pid)
             #fm_process = Popen(["ping", "127.0.0.1"], stdin=music_pipe_r, stdout=dev_null)
 
 
 class YearPage(Resource):
-    # TODO: #9, Add class comment here
+    """
+    This class inherits from a twisted.web.resource class.
+    This class returns a HTML page displaying a calendar of the year passed to the web resource as an argument
+    """
     isLeaf = True
 
     def __init__(self, year):
+        """
+        Constructor method, calls the super class, then takes an integer year and assigns it to an instance variable.
+        """
         Resource.__init__(self)
         self.year = year
 
     def render_GET(self, request):
+        """
+        This method is called when a GET request is sent from the browser.
+        The global number of server views (GETS) is increased by one.
+        Method returns an HTML string displaying a nicely rendered year calender
+        """
         global server_number_of_views
         server_number_of_views += 1
 
@@ -115,13 +132,21 @@ class YearPage(Resource):
 
 
 class AboutPage(Resource):
-    # TODO: #9, Add class comment here
+    """
+    This class inherits from a twisted.web.resource class.
+    This class returns a HTML page displaying and about message for this website
+    """
     isLeaf = True
 
     def __init__(self):
         Resource.__init__(self)
 
     def render_GET(self, request):
+        """
+        This method is called when a GET request is sent from the browser.
+        The global number of server views (GETS) is increased by one.
+        Method returns an HTML string displaying an about page.
+        """
         global server_number_of_views
         server_number_of_views += 1
 
@@ -129,13 +154,21 @@ class AboutPage(Resource):
 
 
 class ConfigPage(Resource):
-    # TODO: #9, Add class comment here
+    """
+    This class inherits from a twisted.web.resource class.
+    This class returns a HTML page displaying a form containing configuration fields that modifies the web servers internal configuration.
+    """
     isLeaf = True
 
     def __init__(self):
         Resource.__init__(self)
 
     def render_GET(self, request):
+        """
+        This method is called when a GET request is sent from the browser.
+        The global number of server views (GETS) is increased by one.
+        Method returns an HTML string displaying a form containing configuration fields
+        """
         global server_number_of_views
         server_number_of_views += 1
 
@@ -156,7 +189,13 @@ class ConfigPage(Resource):
         """
 
     def render_POST(self, request):
-        print "FormPage::render_POST"
+        """
+        This method is called when a POST request is sent from the browser; i.e. when the submit button have been clicked
+        The global number of server views (GETS) is increased by one.
+        Method redirects the browser to the URI /config.
+        This generates a GET request which calls this classes render_GET method
+        """
+        print "TransmitPage::render_POST"
 
         print "Methods and Attributes of request"
         for i in request.__dict__:
@@ -176,14 +215,21 @@ class ConfigPage(Resource):
 
 
 class StatusPage(Resource):
-    # TODO: #9, Add class comment here
-
+    """
+    This class inherits from a twisted.web.resource class.
+    This class returns a HTML page displaying the status of the web server and other piFM related information
+    """
     isLeaf = True
 
     def __init__(self):
         Resource.__init__(self)
 
     def render_GET(self, request):
+        """
+        This method is called when a GET request is sent from the browser.
+        The global number of server views (GETS) is increased by one.
+        Method returns a HTML string that displays the various global variable information nicely.
+        """
         # global only needed when global var value needs to change
         global server_number_of_views
 
@@ -223,16 +269,24 @@ class StatusPage(Resource):
                                    server_debugmode, txpower, fm_process.pid if txpower else "None", responseBody)
 
 
-class FormPage(Resource):
-    # TODO: #9, Add class comment here
+class TransmitPage(Resource):
+    """
+    This class inherits from a twisted.web.resource class.
+    This class returns a HTML page displaying a form containing fields that modifies the transmitter parameters of the server.
+    """
     isLeaf = True
 
     def __init__(self):
         Resource.__init__(self)
-        print "FormPage:__init__"
+        print "TransmitPage:__init__"
 
     def render_GET(self, request):
-        print "FormPage::render_GET"
+        """
+        This method is called when a GET request is sent from the browser.
+        The global number of server views (GETS) is increased by one.
+        Method returns a HTML string that displays a form with fields pertaining to the transmitter variables
+        """
+        print "TransmitPage::render_GET"
         global server_number_of_views
         server_number_of_views += 1
         print "Number of GETs [%d]" % server_number_of_views
@@ -274,9 +328,18 @@ class FormPage(Resource):
                )
 
     def render_POST(self, request):
+        """
+        This method is called when a POST request is sent from the browser; i.e. when the submit button have been clicked
+        The global number of server views (GETS) is increased by one.
+        Arguments are parsed from the request string.
+        global server variables are modified accordingly.
+        piFM process is started/stopped/changed depending on the Transmitter Mode field value
+        Method redirects the browser to the URI /transmit.
+        This generates a GET request which calls this classes render_GET method
+        """
         global fm_process
         global frequency
-        print "FormPage::render_POST"
+        print "TransmitPage::render_POST"
 
         print "Methods and Attributes of request"
         for i in request.__dict__:
@@ -376,25 +439,44 @@ class FormPage(Resource):
 
 
 class HomePage(Resource):
-    # TODO: #9, Add class comment here
+    """
+    This class inherits from a twisted.web.resource class.
+    This class is the root URI web resource. It instantiates other classes based on the URL requested
+    """
     def getChild(self, name, request):
+        """
+        This method get called when a request comes in from a browser
+        This method then decides based on the requested URI which twisted.web.resource class to instantiate to process the GET/POST requests
+        """
         if name == '':
+            # root URI requested "http://IP:port/" or "http://IP:port"
             return self
         if name == 'about':
+            # about URI requested "http://IP:port/about"
             return AboutPage()
         if name == 'status':
+            # about URI requested "http://IP:port/status"
             return StatusPage()
         if name == 'transmit':
-            return FormPage()
+            # about URI requested "http://IP:port/transmit"
+            return TransmitPage()
         if name == 'config':
+            # about URI requested "http://IP:port/config"
             return ConfigPage()
-
         if name.isdigit():
+            # about URI requested "http://IP:port/digit"
             return YearPage(int(name))
         else:
+            # invalid URI requested so return a error web resource with renders an HTML that displays a default 404 message
             return NoResource()
 
     def render_GET(self, request):
+        """
+        This method is called when a GET request is sent from the browser to the URI "/" i.e. root page
+        Root page such as IP:8000/
+        The global number of server views (GETS) is increased by one.
+        Method returns a HTML string that displays a welcome message
+        """
         return "<html><body>Welcome to the test transmitter website!" \
                "<h3>To see the status of the web server goto URL/status</h3>" \
                "<h3>To see a calendar rendered,         goto URL/year</h3>" \
@@ -405,7 +487,10 @@ class HomePage(Resource):
 
 # TODO: Implement argument parsing, linux style help in the command line
 
+# Web Server listening socket port to bind to
 port_number = 8000
+
+# Time when the Web server is started
 server_starttime = datetime.today()
 
 print "Started handle_post1.py"
@@ -419,8 +504,6 @@ try:
     print "process pid[%d] have terminated with exitcode [%d]" % (fm_process.pid, fm_process.poll())
 except TypeError:
     print "process pid[%d] have not yet terminated" % (fm_process.pid)
-
-server_starttime.strftime
 
 root = HomePage()
 factory = Site(root)

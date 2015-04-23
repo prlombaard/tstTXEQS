@@ -1,0 +1,6 @@
+wpa_passphrase My_WiFi_SSID w3lc0m3t0g3w
+
+https://learn.adafruit.com/adafruits-raspberry-pi-lesson-3-network-setup/setting-up-wifi-with-occidentalis
+
+https://www.marcomc.com/2012/09/how-to-configure-wireless-lan-on-raspberrypi-with-raspbian-kernel-3-2-27-and-solwise-rtl8188cus-wifi-dongle/
+

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Pirate Radio
 # Author: Wynter Woods (Make Magazine)
 
@@ -14,14 +14,14 @@ import time
 
 fm_process = None
 on_off = ["off", "on"]
-config_location = "/pirateradio/pirateradio.conf"
+config_location = "/boot/pirateradio/pirateradio.conf"
 
-frequency = 87.9
+frequency = 88.9
 shuffle = False
 repeat_all = False
 merge_audio_in = False
 play_stereo = True
-music_dir = "/pirateradio"
+music_dir = "/boot/pirateradio"
 
 music_pipe_r,music_pipe_w = os.pipe()
 microphone_pipe_r,microphone_pipe_w = os.pipe()
