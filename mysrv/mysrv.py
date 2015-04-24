@@ -20,16 +20,13 @@ from subprocess import Popen
 from os import pipe, devnull
 from time import sleep
 
-# BUG: Possible Bug, include a test to see what python is being used, in python3 the Config Parser is renamed to configparser
-import ConfigParser
-
 # global module variables
 server_state = ""
 server_starttime = datetime.today()
 server_number_of_views = 0
 
 # Web Server listening socket port to bind to
-port_number = 80
+port_number = 99
 
 
 # TODO: #1, Load securely from config file
@@ -43,7 +40,15 @@ server_vars = {server_varheader[0]: server_txmode_string[0], server_varheader[1]
 # piFM related variables
 # path for pifm executable
 PIFM_BIN = "/home/pi/pirateradio/pifm"
-config_location = "/home/pi/mysrv/mysrv.conf"
+if sys.platform.startswith('win'):
+    # Platform is windows, most likely working in the development environment so use relative paths
+    config_location = "./mysrv.conf"
+    json_location = "./mysrv.json"
+else:
+    # Platform is something else than windows, most likely raspberryPi
+    config_location = "/home/pi/mysrv/mysrv.conf"
+    json_location = "/home/pi/mysrv/mysrv.json"
+
 music_pipe_r, music_pipe_w = pipe()
 fm_process = None
 frequency = 88.9
@@ -52,13 +57,18 @@ music_dir = "/boot/music"
 
 # TODO: #2, Add logging like in import logging
 
+
 def read_config():
+    # BUG: Possible Bug, include a test to see what python is being used, in python3 the Config Parser is renamed to configparser
+    import ConfigParser
+
     global frequency
     global music_dir
     global play_stereo
     global port_number
     global config_location
-    
+    global PIFM_BIN
+
     try:
         config = ConfigParser.RawConfigParser()
         config.read(config_location)
@@ -68,12 +78,40 @@ def read_config():
         try:
             print "Parsing values from file"
             play_stereo = config.getboolean('mysrv', 'stereo_playback')
-            frequency = config.getfloat('mysrv','frequency')
+            frequency = config.getfloat('mysrv', 'frequency')
             music_dir = config.get('mysrv', 'music_dir')
             port_number = config.getint('mysrv', 'port_number')
+            PIFM_BIN = config.get('mysrv', 'PIFM_BIN')
         except ConfigParser.Error as e:
             print("Config Parsing Error")
             print(e)
+
+    import json
+    global json_location
+
+    global server_users_and_passwords
+    global server_debugmode
+    global server_txmode_string
+    global server_varheader
+    global server_logging_mode
+    global server_vars
+
+    print "Opening JSON Located at %s" % json_location
+
+    # Writing our configuration file to 'mysrv.conf'
+    with open(json_location, 'r') as jsonfile:
+        #config.write(jsonfile)
+        mypackage = json.loads(jsonfile.read())
+
+    print mypackage
+    print type(mypackage)
+
+    server_users_and_passwords = mypackage['server_users_and_passwords'] 
+    server_debugmode = mypackage['server_debugmode']
+    server_txmode_string = mypackage['server_txmode_string']
+    server_varheader = mypackage['server_varheader'] 
+    server_logging_mode = mypackage['server_logging_mode']
+    server_vars = mypackage['server_vars']
 
 
 def isRunning(processid):
@@ -101,7 +139,7 @@ def run_pifm():
         with open(devnull, "w") as dev_null:
             # Create the process in specific platform modes
             # TODO: create processes in different ways depending on Transmitter Mode
-#            if server_vars[server_varheader[0]] == server_txmode_string[0]:
+            #if server_vars[server_varheader[0]] == server_txmode_string[0]:
             # Transmit mode is set to Fixed Frequency
             # Test if fm_process is already running
             if isRunning(fm_process) == False:
@@ -515,40 +553,47 @@ class HomePage(Resource):
                "<h3>To see transmitter input parameter form goto URL/transmit</h3>" \
                "</body></html>"
 
-# TODO: #7, if __name__ == __main"__ here
+def main():
+    """
+    This function is the main function and implements most of the functions for the server
+    """
+    pass
 
-# Call config loading function
-print "Calling Config File Loader"
+# DONE: #7, if __name__ == __main"__ here
 
-read_config()
+if __name__ == "__main__":
+    # Call config loading function
+    print "Calling Config File Loader"
 
-print "Config Loaded"
+    read_config()
 
-print "Config:"
-print "Port Number to bind to: %d" % port_number
+    print "Config Loaded"
 
-# TODO: Implement argument parsing, linux style help in the command line
+    print "Config:"
+    print "Port Number to bind to: %d" % port_number
 
-# Time when the Web server is started
-server_starttime = datetime.today()
+    # TODO: Implement argument parsing, linux style help in the command line
 
-print "Started handle_post1.py"
-print "Listening on port [%d]" % port_number
-print "Start time : %s" % server_starttime.strftime("%Y-%M-%d %H:%M:%S")
+    # Time when the Web server is started
+    server_starttime = datetime.today()
 
-print "Starting pifm"
-run_pifm()
-print "process.poll()"
-try:
-    print "process pid[%d] have terminated with exitcode [%d]" % (fm_process.pid, fm_process.poll())
-except TypeError:
-    print "process pid[%d] have not yet terminated" % (fm_process.pid)
+    print "Started %s" % __file__
+    print "Listening on port [%d]" % port_number
+    print "Start time : %s" % server_starttime.strftime("%Y-%M-%d %H:%M:%S")
 
-root = HomePage()
-factory = Site(root)
-reactor.listenTCP(port_number, factory)
+    print "Starting pifm"
+    run_pifm()
+    print "process.poll()"
+    try:
+        print "process pid[%d] have terminated with exitcode [%d]" % (fm_process.pid, fm_process.poll())
+    except TypeError:
+        print "process pid[%d] have not yet terminated" % (fm_process.pid)
 
-print "About to reactor.run()"
-reactor.run()
+    root = HomePage()
+    factory = Site(root)
+    reactor.listenTCP(port_number, factory)
 
-print "Stopped handle_post1.py"
+    print "About to reactor.run()"
+    reactor.run()
+
+    print "Stopped %s" % __file__
