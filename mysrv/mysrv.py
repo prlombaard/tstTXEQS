@@ -35,7 +35,7 @@ server_debugmode = "logging off"
 server_txmode_string = ['Fixed Frequency', 'Sweep Frequency', 'Hop Frequency', 'Off']
 server_varheader = ['txmode', 'fixedstart', 'fixedstop', 'hopdelay', 'sweepstart', 'sweepstop']
 server_logging_mode = {'Append Log': 'Logging on', 'Rewrite log': 'Logging on', 'Off': 'Logging'}
-server_vars = {server_varheader[0]: server_txmode_string[0], server_varheader[1]: 88900000, server_varheader[2]: 100000000, server_varheader[3]: 200, server_varheader[4]: 1000000, server_varheader[5]: 1200000}
+server_vars = {server_varheader[0]: server_txmode_string[0], server_varheader[1]: 500000, server_varheader[2]: 100000000, server_varheader[3]: 200, server_varheader[4]: 1000000, server_varheader[5]: 1200000}
 
 # piFM related variables
 # path for pifm executable
@@ -125,6 +125,7 @@ def read_config():
             print(e)
 
     import json
+
     global json_location
 
     global server_users_and_passwords
@@ -136,7 +137,7 @@ def read_config():
 
     print "Opening JSON Located at %s" % json_location
 
-    # Writing our configuration file to 'mysrv.conf'
+    # Reading our configuration file to 'mysrv.conf'
     with open(json_location, 'r') as jsonfile:
         #config.write(jsonfile)
         #mypackage = json.loads(jsonfile.read())   BUG: this JSOON statement loads strings to unicode object NOT str
@@ -525,7 +526,7 @@ class TransmitPage(Resource):
             hop_set = [1.0, 2.0, 3.0, 4.0, 5.0]
             
             # Iterate though the list of hop frequencies
-            for i in xrange(0, 5):
+            for i in xrange(0, len(hop_set)):
                 # Set hopping emission broadcast frequency
                 #frequency = int(server_vars[server_varheader[1]]) / 1000000.0
                 frequency = hop_set[i]
