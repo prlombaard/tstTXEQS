@@ -58,6 +58,41 @@ music_dir = "/boot/music"
 # TODO: #2, Add logging like in import logging
 
 
+def _decode_list(data):
+    """
+    Source from http://stackoverflow.com/questions/956867/how-to-get-string-objects-instead-of-unicode-ones-from-json-in-python
+    It correctly decodes unicode objects to ascii
+    """
+    rv = []
+    for item in data:
+        if isinstance(item, unicode):
+            item = item.encode('utf-8')
+        elif isinstance(item, list):
+            item = _decode_list(item)
+        elif isinstance(item, dict):
+            item = _decode_dict(item)
+        rv.append(item)
+    return rv
+
+def _decode_dict(data):
+    """
+    Source from http://stackoverflow.com/questions/956867/how-to-get-string-objects-instead-of-unicode-ones-from-json-in-python
+    It correctly decodes unicode objects to ascii   
+    """
+    rv = {}
+    for key, value in data.iteritems():
+        if isinstance(key, unicode):
+            key = key.encode('utf-8')
+        if isinstance(value, unicode):
+            value = value.encode('utf-8')
+        elif isinstance(value, list):
+            value = _decode_list(value)
+        elif isinstance(value, dict):
+            value = _decode_dict(value)
+        rv[key] = value
+    return rv
+
+
 def read_config():
     # BUG: Possible Bug, include a test to see what python is being used, in python3 the Config Parser is renamed to configparser
     import ConfigParser
@@ -77,6 +112,9 @@ def read_config():
     else:
         try:
             print "Parsing values from file"
+
+            # FIXME: #15, Implement fallback func. Otherwise variable is set to None. Python3 have fallback parameters in the config.get methods but not in Python2.
+
             play_stereo = config.getboolean('mysrv', 'stereo_playback')
             frequency = config.getfloat('mysrv', 'frequency')
             music_dir = config.get('mysrv', 'music_dir')
@@ -101,15 +139,17 @@ def read_config():
     # Writing our configuration file to 'mysrv.conf'
     with open(json_location, 'r') as jsonfile:
         #config.write(jsonfile)
-        mypackage = json.loads(jsonfile.read())
+        #mypackage = json.loads(jsonfile.read())   BUG: this JSOON statement loads strings to unicode object NOT str
 
-    print mypackage
-    print type(mypackage)
+        # FIXES: #18, bytes returned error in browser
+        mypackage = json.loads(jsonfile.read(), object_hook=_decode_dict)
 
-    server_users_and_passwords = mypackage['server_users_and_passwords'] 
+    # FIXME: #16, Implement fallback func. Otherwise variable is set to None. Python3 have fallback parameters in the config.get methods but not in Python2.
+
+    server_users_and_passwords = mypackage['server_users_and_passwords']
     server_debugmode = mypackage['server_debugmode']
     server_txmode_string = mypackage['server_txmode_string']
-    server_varheader = mypackage['server_varheader'] 
+    server_varheader = mypackage['server_varheader']
     server_logging_mode = mypackage['server_logging_mode']
     server_vars = mypackage['server_vars']
 
@@ -460,8 +500,8 @@ class TransmitPage(Resource):
         # TODO: #5, Implement frequency sweep mode
 
         if server_vars[server_varheader[0]] == server_txmode_string[1]:
-            # transmitter must be switched on in Fixed Frequency mode
-            print "Switch on transmitter in sweep frequency mode"
+            # transmitter must be switched on in Sweep Frequency mode
+            print "Switch on transmitter in Seep frequency mode"
             
             run_pifm()
             
@@ -469,8 +509,8 @@ class TransmitPage(Resource):
         # TODO: #6, Implement frequency hopper mode
 
         if server_vars[server_varheader[0]] == server_txmode_string[2]:
-            # transmitter must be switched on in Fixed Frequency mode
-            print "Switch on transmitter in sweep frequency mode"
+            # transmitter must be switched on in Hopper Frequency mode
+            print "Switch on transmitter in Hopper frequency mode"
             
 
             # TODO: use the hop delay server var instead of local temp variable
@@ -482,10 +522,10 @@ class TransmitPage(Resource):
 
             # Set broadcast frequency            
             # Create list of frequencies to hop over
-            hop_set = [88.2, 88.9, 88.2, 88.9, 88.2]
+            hop_set = [1.0, 2.0, 3.0, 4.0, 5.0]
             
             # Iterate though the list of hop frequencies
-            for i in xrange(0,5):
+            for i in xrange(0, 5):
                 # Set hopping emission broadcast frequency
                 #frequency = int(server_vars[server_varheader[1]]) / 1000000.0
                 frequency = hop_set[i]

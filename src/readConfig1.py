@@ -34,7 +34,35 @@ print "PIFM_BIN\t\t: %s" % PIFM_BIN
 
 import json
 
-# TODO: #1, Load securely from config file
+# Source from http://stackoverflow.com/questions/956867/how-to-get-string-objects-instead-of-unicode-ones-from-json-in-python
+# It correctly decodes unicode objects to ascii
+
+def _decode_list(data):
+    rv = []
+    for item in data:
+        if isinstance(item, unicode):
+            item = item.encode('utf-8')
+        elif isinstance(item, list):
+            item = _decode_list(item)
+        elif isinstance(item, dict):
+            item = _decode_dict(item)
+        rv.append(item)
+    return rv
+
+def _decode_dict(data):
+    rv = {}
+    for key, value in data.iteritems():
+        if isinstance(key, unicode):
+            key = key.encode('utf-8')
+        if isinstance(value, unicode):
+            value = value.encode('utf-8')
+        elif isinstance(value, list):
+            value = _decode_list(value)
+        elif isinstance(value, dict):
+            value = _decode_dict(value)
+        rv[key] = value
+    return rv
+
 #server_users_and_passwords = {'user': 'user', 'admin': 'admin'}
 #server_debugmode = "logging off"
 #server_txmode_string = ['Fixed Frequency', 'Sweep Frequency', 'Hop Frequency', 'Off']
@@ -42,13 +70,13 @@ import json
 #server_logging_mode = {'Append Log': 'Logging on', 'Rewrite log': 'Logging on', 'Off': 'Logging'}
 #server_vars = {server_varheader[0]: server_txmode_string[0], server_varheader[1]: 88900000, server_varheader[2]: 100000000, server_varheader[3]: 200, server_varheader[4]: 1000000, server_varheader[5]: 1200000}
 
-
 print "Opening JSON Located at %s" % json_location
 
 # Writing our configuration file to 'mysrv.conf'
 with open(json_location, 'r') as jsonfile:
     #config.write(jsonfile)
-    mypackage = json.loads(jsonfile.read())
+    #mypackage = json.loads(jsonfile.read())
+    mypackage = json.loads(jsonfile.read(), object_hook=_decode_dict)    
 
 print mypackage
 print type(mypackage)
@@ -59,3 +87,16 @@ server_txmode_string = mypackage['server_txmode_string']
 server_varheader = mypackage['server_varheader'] 
 server_logging_mode = mypackage['server_logging_mode']
 server_vars = mypackage['server_vars']
+
+import chardet
+import string
+
+mystring = server_debugmode
+
+print type(mystring.encode('ascii'))
+
+encoding = chardet.detect(mystring)
+if encoding['encoding'] == 'ascii':
+    print 'string is in ascii'
+else:
+	print 'string is NOT ascii'
