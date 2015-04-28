@@ -1,7 +1,7 @@
 # Equipment Server for Test Transmitter
 
 ## Hardware requirements
-1. All raspberry Pis except a RPi 2 Model B, Raspberry A, B, B+
+1. All raspberry Pis except a RPi 2 Model B
 
 ## Installation Instructions
 1. Take the latest standard rasbian image and write the .img to an SD card

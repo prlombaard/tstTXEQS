@@ -3,6 +3,7 @@
 # Author: Rudolph Lombaard
 
 __author__ = 'prlombaard@gmail.com'
+__version__ = 'V2.0'
 
 """
 Original Source: Twisted Examples - e-book
@@ -115,11 +116,26 @@ def read_config():
 
             # FIXME: #15, Implement fallback func. Otherwise variable is set to None. Python3 have fallback parameters in the config.get methods but not in Python2.
 
-            play_stereo = config.getboolean('mysrv', 'stereo_playback')
-            frequency = config.getfloat('mysrv', 'frequency')
-            music_dir = config.get('mysrv', 'music_dir')
-            port_number = config.getint('mysrv', 'port_number')
-            PIFM_BIN = config.get('mysrv', 'PIFM_BIN')
+            print "Items in config"
+            print config.items('mysrv')
+            unbundled = []
+            for a, b in config.items('mysrv'):
+                #print a, b
+                unbundled.append(a)
+
+            # DONE: #15, chked variables
+
+            if 'stereo_playback' in unbundled:
+                play_stereo = config.getboolean('mysrv', 'stereo_playback')
+            if 'frequency' in unbundled:
+                frequency = config.getfloat('mysrv', 'frequency')
+            if 'music_dir' in unbundled:
+                music_dir = config.get('mysrv', 'music_dir')
+            if 'port_number' in unbundled:
+                port_number = config.getint('mysrv', 'port_number')
+            if 'PIFM_BIN' in unbundled:
+                PIFM_BIN = config.get('mysrv', 'PIFM_BIN')
+
         except ConfigParser.Error as e:
             print("Config Parsing Error")
             print(e)
@@ -176,6 +192,7 @@ def run_pifm():
     # TODO: #4, Move the platform checking out of this method, use common array name in Popen, i.e. not hardcoded string literals
     if sys.platform.startswith('win'):
         print "Platform : Windows"
+        print "Running ping instead of pifm"
 
         with open(devnull, "w") as dev_null:
             # Create the process in specific platform modes
@@ -480,6 +497,8 @@ class TransmitPage(Resource):
             # transmitter must be switched off
             print "Switch off transmitter"
 
+            # BUG: #20, Implement better more robust way to stop the current pifm processes. There are currently ghost pifm processes.
+
             #test if fm_process exists
             if fm_process is not None:
                 print "Terminating process pid[%d]" % fm_process.pid
@@ -589,11 +608,13 @@ class HomePage(Resource):
         Method returns a HTML string that displays a welcome message
         """
         return "<html><body>Welcome to the test transmitter website!" \
-               "<h3>To see the status of the web server goto URL/status</h3>" \
+               "<h3><a href=\"http://localhost/status\" title=\"To see the status of the web server\" class=\"mw-redirect\">localhost/status</a></h3>" \
+               "<h3><a href=\"http://localhost/transmit\" title=\"To change transmitter parameters\" class=\"mw-redirect\">localhost/transmit</a></h3>" \
                "<h3>To see a calendar rendered,         goto URL/year</h3>" \
-               "<h3>To see transmitter input parameter form goto URL/transmit</h3>" \
+               "<h4>Software Version: 2.0</h3>" \
                "</body></html>"
 
+# <a href="http://en.wikipedia.org/wiki/Computer_software" title="Computer software" class="mw-redirect">computer software</a>
 def main():
     """
     This function is the main function and implements most of the functions for the server
